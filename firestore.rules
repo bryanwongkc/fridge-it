@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Development MVP rules.
+    // TODO production: replace localStorage household IDs with membership documents
+    // and use custom claims or role documents for admin-only review/public writes.
+
+    match /publicProducts/{productId} {
+      allow read: if signedIn();
+      allow write: if signedIn(); // TODO admin-only.
+    }
+
+    match /households/{householdId}/{document=**} {
+      allow read, write: if signedIn(); // TODO household membership check.
+    }
+
+    match /productSubmissions/{submissionId} {
+      allow read: if signedIn(); // TODO admin-only for full queue.
+      allow create: if signedIn();
+      allow update, delete: if signedIn(); // TODO admin-only for review updates.
+    }
+  }
+}
