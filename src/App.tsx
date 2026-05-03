@@ -39,9 +39,7 @@ export default function App() {
     if (!householdId) return;
     try {
       if (item.quantity > 1) {
-        const amountRaw = window.prompt(`Reduce ${item.name} by how much?`, "1");
-        const amount = Math.max(1, Number(amountRaw) || 1);
-        await reduceInventoryQuantity(householdId, item, amount);
+        await reduceInventoryQuantity(householdId, item, 1);
       } else {
         await setInventoryStatus(householdId, item, "used");
       }
@@ -119,6 +117,7 @@ export default function App() {
           onUsed={handleUsed}
           onShopping={handleShopping}
           onEdit={() => setActiveTab("inventory")}
+          onDelete={handleDeleteInventory}
         />
       ) : null}
 

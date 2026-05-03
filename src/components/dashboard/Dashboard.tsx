@@ -1,4 +1,4 @@
-import { Refrigerator, ShoppingBasket, X } from "lucide-react";
+import { Refrigerator, ShoppingBasket, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { InventoryItem } from "../../types/inventory";
 import { getDaysUntilExpiry, relativeExpiryLabel } from "../../utils/dates";
@@ -22,6 +22,7 @@ export function Dashboard({
   onUsed,
   onShopping,
   onEdit,
+  onDelete,
 }: {
   householdId: string;
   items: InventoryItem[];
@@ -31,6 +32,7 @@ export function Dashboard({
   onUsed: (item: InventoryItem) => void;
   onShopping: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
+  onDelete: (item: InventoryItem) => void;
 }) {
   const [detail, setDetail] = useState<DetailView | null>(null);
   const activeItems = items.filter((item) => item.status === "active");
@@ -237,6 +239,7 @@ export function Dashboard({
         onUsed={onUsed}
         onShopping={onShopping}
         onEdit={onEdit}
+        onDelete={onDelete}
       />
     </section>
   );
@@ -317,12 +320,14 @@ function DashboardDetailSheet({
   onUsed,
   onShopping,
   onEdit,
+  onDelete,
 }: {
   detail: DetailView | null;
   onClose: () => void;
   onUsed: (item: InventoryItem) => void;
   onShopping: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
+  onDelete: (item: InventoryItem) => void;
 }) {
   if (!detail) return null;
 
@@ -364,7 +369,7 @@ function DashboardDetailSheet({
                       {relativeExpiryLabel(item.expiryDate, item.hasNoExpiry)}
                     </Badge>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="mt-2 grid grid-cols-4 gap-2">
                     <Button
                       variant="secondary"
                       className="min-h-8 rounded-xl px-2 text-xs"
@@ -385,6 +390,15 @@ function DashboardDetailSheet({
                       onClick={() => onEdit(item)}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="min-h-8 rounded-xl px-2 text-xs text-red-600"
+                      icon={<Trash2 size={14} />}
+                      onClick={() => onDelete(item)}
+                      aria-label={`Delete ${item.name}`}
+                    >
+                      Del
                     </Button>
                   </div>
                 </div>
