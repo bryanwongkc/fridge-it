@@ -22,65 +22,74 @@ export function InventoryCard({
   const status = getExpiryStatus(item.expiryDate, item.hasNoExpiry);
 
   return (
-    <Card className="p-4">
+    <Card className="p-3">
       <div className="flex gap-3">
         {item.imageUrl ? (
-          <img src={item.imageUrl} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+          <img src={item.imageUrl} alt="" className="h-12 w-12 rounded-2xl object-cover" />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-xl font-black text-kitchen-green">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-base font-black text-kitchen-green">
             {item.name.slice(0, 1).toUpperCase()}
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="truncate text-base font-black text-kitchen-ink">{item.name}</h3>
-              <p className="mt-1 text-sm text-kitchen-muted">
+              <h3 className="truncate text-sm font-black text-kitchen-ink">{item.name}</h3>
+              <p className="mt-0.5 truncate text-xs font-semibold text-kitchen-muted">
                 {item.quantity} {item.unit} · {item.location}
+                {item.category ? ` · ${item.category}` : ""}
               </p>
             </div>
-            <Badge className={expiryTone(status)}>
+            <Badge className={`shrink-0 px-2 py-0.5 text-[10px] ${expiryTone(status)}`}>
               {relativeExpiryLabel(item.expiryDate, item.hasNoExpiry)}
             </Badge>
           </div>
 
-          {item.quantity > 1 ? (
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onAdjust(item, -1)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
-                aria-label="Reduce quantity"
+          <div className="mt-2 flex items-center gap-2">
+            {item.quantity > 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onAdjust(item, -1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100"
+                  aria-label="Reduce quantity"
+                >
+                  <Minus size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onAdjust(item, 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100"
+                  aria-label="Increase quantity"
+                >
+                  <Plus size={15} />
+                </button>
+              </>
+            ) : null}
+            <div className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+              <Button
+                variant="secondary"
+                className="min-h-8 rounded-xl px-2 text-xs"
+                onClick={() => onUsed(item)}
               >
-                <Minus size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onAdjust(item, 1)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
-                aria-label="Increase quantity"
+                Used
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-8 rounded-xl px-2 text-xs"
+                onClick={() => onEdit(item)}
               >
-                <Plus size={16} />
-              </button>
-              <span className="text-xs font-semibold text-kitchen-muted">Adjust stock</span>
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                className="min-h-8 rounded-xl px-2 text-xs"
+                icon={<ShoppingBasket size={14} />}
+                onClick={() => onShopping(item)}
+              >
+                Add
+              </Button>
             </div>
-          ) : null}
-
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <Button variant="secondary" className="min-h-10 px-2" onClick={() => onUsed(item)}>
-              Used
-            </Button>
-            <Button variant="ghost" className="min-h-10 px-2" onClick={() => onEdit(item)}>
-              Edit
-            </Button>
-            <Button
-              variant="secondary"
-              className="min-h-10 px-2"
-              icon={<ShoppingBasket size={15} />}
-              onClick={() => onShopping(item)}
-            >
-              Add
-            </Button>
           </div>
         </div>
       </div>

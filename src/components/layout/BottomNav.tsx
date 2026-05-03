@@ -22,7 +22,7 @@ export function BottomNav({
     : baseTabs;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur">
       <div
         className="mx-auto grid max-w-md gap-1"
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
@@ -34,11 +34,11 @@ export function BottomNav({
               key={id}
               type="button"
               onClick={() => onChange(id)}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-semibold transition ${
+              className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-semibold transition ${
                 active ? "bg-emerald-50 text-kitchen-green" : "text-slate-500"
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2.7 : 2} />
+              <Icon size={18} strokeWidth={active ? 2.7 : 2} />
               {label}
             </button>
           );

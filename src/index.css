@@ -32,7 +32,7 @@ textarea {
 }
 
 .safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 76px);
 }
 
 .no-scrollbar::-webkit-scrollbar {
