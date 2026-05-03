@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AddStock } from "./components/add/AddStock";
 import { AdminReviewPage } from "./components/admin/AdminReviewPage";
+import { AppUpdateNotice } from "./components/common/AppUpdateNotice";
 import { Button } from "./components/common/Button";
 import { Card } from "./components/common/Card";
 import { LoadingState } from "./components/common/LoadingState";
@@ -154,6 +155,7 @@ export default function App() {
           loading={submissions.loading}
         />
       ) : null}
+      <AppUpdateNotice />
     </AppShell>
   );
 }
