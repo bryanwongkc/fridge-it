@@ -4,6 +4,42 @@ import { Button } from "../common/Button";
 import { Card } from "../common/Card";
 
 const locations: ProductLocation[] = ["fridge", "freezer", "pantry", "other"];
+const categoryOptions = [
+  "Dairy",
+  "Eggs",
+  "Meat",
+  "Seafood",
+  "Vegetables",
+  "Fruit",
+  "Bakery",
+  "Frozen",
+  "Pantry",
+  "Drinks",
+  "Other",
+];
+const unitOptions = [
+  "item",
+  "pack",
+  "pcs",
+  "bottle",
+  "carton",
+  "bag",
+  "box",
+  "can",
+  "jar",
+  "cup",
+  "tray",
+  "g",
+  "kg",
+  "ml",
+  "L",
+  "other",
+];
+
+function getSelectValue(value: string | null | undefined, options: string[]) {
+  if (!value) return "";
+  return options.includes(value) ? value : options[options.length - 1];
+}
 
 export function ProductCreateForm({
   initialName = "",
@@ -22,10 +58,12 @@ export function ProductCreateForm({
 }) {
   const [name, setName] = useState(initialProduct?.name || initialName);
   const [brand, setBrand] = useState(initialProduct?.brand || "");
-  const [category, setCategory] = useState(initialProduct?.category || "");
+  const [category, setCategory] = useState(getSelectValue(initialProduct?.category, categoryOptions));
   const [barcode, setBarcode] = useState(initialProduct?.barcode || initialBarcode || "");
-  const [imageUrl, setImageUrl] = useState(initialProduct?.imageUrl || "");
-  const [defaultUnit, setDefaultUnit] = useState(initialProduct?.defaultUnit || "");
+  const imageUrl = initialProduct?.imageUrl || "";
+  const [defaultUnit, setDefaultUnit] = useState(
+    getSelectValue(initialProduct?.defaultUnit, unitOptions),
+  );
   const [defaultLocation, setDefaultLocation] = useState<ProductLocation>(
     initialProduct?.defaultLocation || "fridge",
   );
@@ -78,11 +116,18 @@ export function ProductCreateForm({
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Category</span>
-            <input
+            <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
               className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-            />
+            >
+              <option value="">Select</option>
+              {categoryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <div>
@@ -107,12 +152,18 @@ export function ProductCreateForm({
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Unit</span>
-            <input
+            <select
               value={defaultUnit}
-              placeholder="pack, pcs, bottle"
               onChange={(event) => setDefaultUnit(event.target.value)}
               className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-            />
+            >
+              <option value="">Select</option>
+              {unitOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Shelf life</span>
@@ -130,14 +181,6 @@ export function ProductCreateForm({
           <input
             value={barcode}
             onChange={(event) => setBarcode(event.target.value)}
-            className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-kitchen-ink">Image URL</span>
-          <input
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
             className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
           />
         </label>
