@@ -11,11 +11,13 @@ export function PriorityList({
   onUsed,
   onShopping,
   onEdit,
+  onSelect,
 }: {
   items: InventoryItem[];
   onUsed: (item: InventoryItem) => void;
   onShopping: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
+  onSelect?: (item: InventoryItem) => void;
 }) {
   if (!items.length) {
     return (
@@ -31,7 +33,17 @@ export function PriorityList({
       {items.map((item) => {
         const status = getExpiryStatus(item.expiryDate, item.hasNoExpiry);
         return (
-          <Card key={item.id} className="p-3">
+          <Card
+            key={item.id}
+            className={`p-3 ${onSelect ? "cursor-pointer transition active:scale-[0.99]" : ""}`}
+            onClick={() => onSelect?.(item)}
+            role={onSelect ? "button" : undefined}
+            tabIndex={onSelect ? 0 : undefined}
+            onKeyDown={(event) => {
+              if (!onSelect) return;
+              if (event.key === "Enter" || event.key === " ") onSelect(item);
+            }}
+          >
             <div className="flex gap-3">
               {item.imageUrl ? (
                 <img
@@ -61,21 +73,30 @@ export function PriorityList({
                   <Button
                     variant="secondary"
                     className="min-h-9 rounded-xl px-2 text-xs"
-                    onClick={() => onUsed(item)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onUsed(item);
+                    }}
                   >
                     Used
                   </Button>
                   <Button
                     variant="secondary"
                     className="min-h-9 rounded-xl px-2 text-xs"
-                    onClick={() => onShopping(item)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onShopping(item);
+                    }}
                   >
                     Shop
                   </Button>
                   <Button
                     variant="ghost"
                     className="min-h-9 rounded-xl px-2 text-xs"
-                    onClick={() => onEdit(item)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(item);
+                    }}
                   >
                     Edit
                   </Button>
