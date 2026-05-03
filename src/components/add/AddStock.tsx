@@ -208,7 +208,15 @@ export function AddStock({
       {step === "choose" ? (
         <>
           {message === "Looking up product..." ? <LoadingState label="Looking up product..." /> : null}
-          <InputMethodPicker onScan={() => setStep("scan")} onManual={() => setStep("manual")} />
+          <InputMethodPicker
+            onScan={() => setStep("scan")}
+            onManual={() => setStep("manual")}
+            onManualAdd={() => {
+              setInitialCreateName("");
+              setInitialBarcode(null);
+              setStep("create");
+            }}
+          />
           <FastAddList
             products={recentProducts}
             inventoryItems={previousInventoryItems}
@@ -269,6 +277,7 @@ export function AddStock({
           sourceLabel={sourceLabel}
           onSave={(input) => saveStock(selectedProduct, input)}
           onEditProduct={() => setStep("edit_product")}
+          onExit={() => setStep("choose")}
         />
       ) : null}
 

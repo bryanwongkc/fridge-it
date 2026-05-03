@@ -1,4 +1,4 @@
-import { CalendarDays, Minus, Plus } from "lucide-react";
+import { CalendarDays, Minus, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { HouseholdProduct, ProductLocation } from "../../types/product";
 import { addDays, formatDate } from "../../utils/dates";
@@ -27,6 +27,7 @@ export function StockConfirmForm({
   sourceLabel,
   onSave,
   onEditProduct,
+  onExit,
 }: {
   product: HouseholdProduct;
   sourceLabel: string;
@@ -39,6 +40,7 @@ export function StockConfirmForm({
     notes: string | null;
   }) => Promise<void>;
   onEditProduct: () => void;
+  onExit: () => void;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState(product.defaultUnit || "item");
@@ -97,6 +99,14 @@ export function StockConfirmForm({
             </h1>
             {product.brand ? <p className="text-sm text-kitchen-muted">{product.brand}</p> : null}
           </div>
+          <button
+            type="button"
+            onClick={onExit}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-kitchen-ink"
+            aria-label="Exit stock entry"
+          >
+            <X size={20} />
+          </button>
         </div>
       </Card>
 

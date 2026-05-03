@@ -10,14 +10,34 @@ import { EmptyState } from "../common/EmptyState";
 import { InventoryCard } from "./InventoryCard";
 import { InventoryEditSheet } from "./InventoryEditSheet";
 
-const filters: Array<"all" | ProductLocation | "expired" | "useSoon"> = [
+const locationFilters: Array<"all" | ProductLocation> = [
   "all",
   "fridge",
   "freezer",
   "pantry",
-  "expired",
-  "useSoon",
+  "other",
 ];
+
+const categoryFilters = [
+  "all",
+  "dairy",
+  "meat",
+  "fruit",
+  "vegetables",
+  "eggs",
+  "seafood",
+  "frozen",
+  "pantry",
+  "bakery",
+  "drinks",
+  "other",
+] as const;
+
+function categoryLabel(category: (typeof categoryFilters)[number]) {
+  if (category === "all") return "All";
+  if (category === "dairy") return "Dairy";
+  return category.charAt(0).toUpperCase() + category.slice(1);
+}
 
 export function InventoryPage({
   householdId,
@@ -29,7 +49,8 @@ export function InventoryPage({
   onUsed: (item: InventoryItem) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<(typeof filters)[number]>("all");
+  const [locationFilter, setLocationFilter] = useState<(typeof locationFilters)[number]>("all");
+  const [categoryFilter, setCategoryFilter] = useState<(typeof categoryFilters)[number]>("all");
   const [editing, setEditing] = useState<InventoryItem | null>(null);
 
   const filtered = useMemo(() => {
@@ -38,13 +59,21 @@ export function InventoryPage({
       .filter((item) => item.status === "active")
       .filter((item) => !normalized || item.normalizedName.includes(normalized))
       .filter((item) => {
-        if (filter === "all") return true;
-        if (["fridge", "freezer", "pantry", "other"].includes(filter)) return item.location === filter;
-        const status = getExpiryStatus(item.expiryDate, item.hasNoExpiry);
-        if (filter === "expired") return status === "expired";
-        return ["today", "tomorrow", "soon_3_days"].includes(status);
+        if (locationFilter === "all") return true;
+        return item.location === locationFilter;
+      })
+      .filter((item) => {
+        if (categoryFilter === "all") return true;
+        const normalizedCategory = item.category ? normalizeText(item.category) : "";
+        if (categoryFilter === "other") {
+          return (
+            !normalizedCategory ||
+            !categoryFilters.includes(normalizedCategory as (typeof categoryFilters)[number])
+          );
+        }
+        return normalizedCategory === categoryFilter;
       });
-  }, [filter, items, query]);
+  }, [categoryFilter, items, locationFilter, query]);
 
   const groups = [
     { title: "Expired", items: filtered.filter((item) => getExpiryStatus(item.expiryDate, item.hasNoExpiry) === "expired") },
@@ -70,19 +99,39 @@ export function InventoryPage({
           className="min-w-0 flex-1 outline-none"
         />
       </div>
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
-        {filters.map((nextFilter) => (
-          <button
-            key={nextFilter}
-            type="button"
-            onClick={() => setFilter(nextFilter)}
-            className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-bold capitalize ${
-              filter === nextFilter ? "bg-kitchen-green text-white" : "bg-white text-kitchen-muted"
-            }`}
-          >
-            {nextFilter === "useSoon" ? "Use Soon" : nextFilter}
-          </button>
-        ))}
+      <div className="space-y-2">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+          {locationFilters.map((nextFilter) => (
+            <button
+              key={nextFilter}
+              type="button"
+              onClick={() => setLocationFilter(nextFilter)}
+              className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-bold capitalize ${
+                locationFilter === nextFilter
+                  ? "bg-kitchen-green text-white"
+                  : "bg-white text-kitchen-muted"
+              }`}
+            >
+              {nextFilter}
+            </button>
+          ))}
+        </div>
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+          {categoryFilters.map((nextFilter) => (
+            <button
+              key={nextFilter}
+              type="button"
+              onClick={() => setCategoryFilter(nextFilter)}
+              className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-bold ${
+                categoryFilter === nextFilter
+                  ? "bg-kitchen-green text-white"
+                  : "bg-white text-kitchen-muted"
+              }`}
+            >
+              {categoryLabel(nextFilter)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {groups.length ? (
