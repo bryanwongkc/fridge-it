@@ -115,6 +115,7 @@ export default function App() {
           personalProducts={products.personalProducts}
           publicProducts={products.publicProducts}
           recentProducts={products.recentProducts}
+          previousInventoryItems={inventory.items}
           onDone={() => setActiveTab("dashboard")}
         />
       ) : null}

@@ -11,7 +11,7 @@ import {
   mergeInventoryQuantity,
 } from "../../services/inventoryService";
 import { updatePersonalProduct } from "../../services/productsService";
-import type { InventoryInput } from "../../types/inventory";
+import type { InventoryInput, InventoryItem } from "../../types/inventory";
 import type { HouseholdProduct, ProductInput } from "../../types/product";
 import { normalizeText } from "../../utils/normalize";
 import { LoadingState } from "../common/LoadingState";
@@ -19,6 +19,7 @@ import { Button } from "../common/Button";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { InputMethodPicker } from "./InputMethodPicker";
 import { ManualProductSearch } from "./ManualProductSearch";
+import { PreviousItems } from "./PreviousItems";
 import { ProductCreateForm } from "./ProductCreateForm";
 import { QuickAddRecent } from "./QuickAddRecent";
 import { StockConfirmForm } from "./StockConfirmForm";
@@ -39,6 +40,7 @@ export function AddStock({
   personalProducts,
   publicProducts,
   recentProducts,
+  previousInventoryItems,
   onDone,
 }: {
   householdId: string;
@@ -46,6 +48,7 @@ export function AddStock({
   personalProducts: HouseholdProduct[];
   publicProducts: Parameters<typeof ManualProductSearch>[0]["publicProducts"];
   recentProducts: HouseholdProduct[];
+  previousInventoryItems: InventoryItem[];
   onDone: () => void;
 }) {
   const [step, setStep] = useState<AddStep>("choose");
@@ -101,6 +104,39 @@ export function AddStock({
   const createFromOff = async (input: ProductInput) => {
     const product = await createPersonalProductFromOffDraft(householdId, input, userId);
     selectProduct(product, "Online lookup");
+  };
+
+  const selectPreviousItem = async (item: InventoryItem) => {
+    const existingProduct =
+      (item.productId && personalProducts.find((product) => product.id === item.productId)) ||
+      (item.barcode && personalProducts.find((product) => product.barcode === item.barcode)) ||
+      personalProducts.find(
+        (product) =>
+          product.normalizedName === normalizeText(item.name) &&
+          (product.brand || null) === (item.brand || null),
+      );
+
+    if (existingProduct) {
+      selectProduct(existingProduct, "Previous item");
+      return;
+    }
+
+    const product = await createManualPersonalProduct(
+      householdId,
+      {
+        name: item.name,
+        barcode: item.barcode,
+        brand: item.brand,
+        category: item.category,
+        imageUrl: item.imageUrl,
+        defaultUnit: item.unit,
+        defaultLocation: item.location,
+        defaultShelfLifeDays: null,
+      },
+      userId,
+      item.barcode ? "manual_after_scan" : "manual",
+    );
+    selectProduct(product, "Previous item");
   };
 
   const updateSelectedProduct = async (input: ProductInput) => {
@@ -164,6 +200,7 @@ export function AddStock({
           {message === "Looking up product..." ? <LoadingState label="Looking up product..." /> : null}
           <InputMethodPicker onScan={() => setStep("scan")} onManual={() => setStep("manual")} />
           <QuickAddRecent products={recentProducts} onSelect={selectProduct} />
+          <PreviousItems items={previousInventoryItems} onSelect={(item) => void selectPreviousItem(item)} />
         </>
       ) : null}
 
