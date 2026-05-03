@@ -15,7 +15,7 @@ import { useInventory } from "./hooks/useInventory";
 import { useProducts } from "./hooks/useProducts";
 import { useShoppingList } from "./hooks/useShoppingList";
 import { useSubmissions } from "./hooks/useSubmissions";
-import { reduceInventoryQuantity, setInventoryStatus } from "./services/inventoryService";
+import { deleteInventoryItem, reduceInventoryQuantity, setInventoryStatus } from "./services/inventoryService";
 import { addShoppingItem } from "./services/shoppingService";
 import type { InventoryItem } from "./types/inventory";
 import { friendlyErrorMessage } from "./utils/friendlyErrors";
@@ -45,16 +45,6 @@ export default function App() {
       } else {
         await setInventoryStatus(householdId, item, "used");
       }
-      const addToList = window.confirm("Add to shopping list?");
-      if (addToList) {
-        await addShoppingItem(householdId, {
-          name: item.name,
-          productId: item.productId,
-          publicProductId: item.publicProductId,
-          unit: item.unit,
-          source: "used_up",
-        });
-      }
     } catch (error) {
       console.error("Inventory used action failed", error);
       window.alert(friendlyErrorMessage(error, "stock"));
@@ -75,6 +65,18 @@ export default function App() {
     } catch (error) {
       console.error("Shopping add failed", error);
       window.alert(friendlyErrorMessage(error, "shopping"));
+    }
+  };
+
+  const handleDeleteInventory = async (item: InventoryItem) => {
+    if (!householdId) return;
+    const confirmed = window.confirm(`Delete ${item.name} from inventory?`);
+    if (!confirmed) return;
+    try {
+      await deleteInventoryItem(householdId, item.id);
+    } catch (error) {
+      console.error("Inventory delete failed", error);
+      window.alert(friendlyErrorMessage(error, "stock"));
     }
   };
 
@@ -133,7 +135,12 @@ export default function App() {
       ) : null}
 
       {activeTab === "inventory" ? (
-        <InventoryPage householdId={householdId} items={inventory.items} onUsed={handleUsed} />
+        <InventoryPage
+          householdId={householdId}
+          items={inventory.items}
+          onUsed={handleUsed}
+          onDelete={handleDeleteInventory}
+        />
       ) : null}
 
       {activeTab === "shopping" ? (

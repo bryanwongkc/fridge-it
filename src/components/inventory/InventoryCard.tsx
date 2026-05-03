@@ -1,4 +1,4 @@
-import { Minus, Plus, ShoppingBasket } from "lucide-react";
+import { Minus, Plus, ShoppingBasket, Trash2 } from "lucide-react";
 import type { InventoryItem } from "../../types/inventory";
 import { relativeExpiryLabel } from "../../utils/dates";
 import { expiryTone, getExpiryStatus } from "../../utils/expiry";
@@ -12,12 +12,14 @@ export function InventoryCard({
   onEdit,
   onShopping,
   onAdjust,
+  onDelete,
 }: {
   item: InventoryItem;
   onUsed: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
   onShopping: (item: InventoryItem) => void;
   onAdjust: (item: InventoryItem, delta: number) => void;
+  onDelete: (item: InventoryItem) => void;
 }) {
   const status = getExpiryStatus(item.expiryDate, item.hasNoExpiry);
 
@@ -66,7 +68,7 @@ export function InventoryCard({
                 </button>
               </>
             ) : null}
-            <div className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+            <div className="grid min-w-0 flex-1 grid-cols-4 gap-2">
               <Button
                 variant="secondary"
                 className="min-h-8 rounded-xl px-2 text-xs"
@@ -88,6 +90,15 @@ export function InventoryCard({
                 onClick={() => onShopping(item)}
               >
                 Add
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-8 rounded-xl px-2 text-xs text-red-600"
+                icon={<Trash2 size={14} />}
+                onClick={() => onDelete(item)}
+                aria-label={`Delete ${item.name}`}
+              >
+                Del
               </Button>
             </div>
           </div>

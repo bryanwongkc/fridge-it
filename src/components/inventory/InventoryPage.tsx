@@ -43,10 +43,12 @@ export function InventoryPage({
   householdId,
   items,
   onUsed,
+  onDelete,
 }: {
   householdId: string;
   items: InventoryItem[];
   onUsed: (item: InventoryItem) => void;
+  onDelete: (item: InventoryItem) => void;
 }) {
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState<(typeof locationFilters)[number]>("all");
@@ -144,6 +146,7 @@ export function InventoryPage({
                 item={item}
                 onUsed={onUsed}
                 onEdit={setEditing}
+                onDelete={onDelete}
                 onShopping={(stock) =>
                   void addShoppingItem(householdId, {
                     name: stock.name,
