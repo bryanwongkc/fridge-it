@@ -11,6 +11,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -28,6 +29,10 @@ function householdProductsRef(householdId: string) {
 
 function publicProductsRef() {
   return collection(requireDb(), "publicProducts");
+}
+
+function inventoryRef(householdId: string) {
+  return collection(requireDb(), "households", householdId, "inventory");
 }
 
 export function subscribeHouseholdProducts(
@@ -163,9 +168,10 @@ export async function updatePersonalProduct(
   productId: string,
   input: ProductInput,
 ): Promise<void> {
+  const normalizedName = normalizeText(input.name);
   await updateDoc(doc(householdProductsRef(householdId), productId), {
     name: input.name.trim(),
-    normalizedName: normalizeText(input.name),
+    normalizedName,
     barcode: input.barcode || null,
     brand: input.brand || null,
     category: input.category || null,
@@ -175,6 +181,33 @@ export async function updatePersonalProduct(
     defaultShelfLifeDays: input.defaultShelfLifeDays ?? null,
     updatedAt: serverTimestamp(),
   });
+  await updateInventorySnapshotsForProduct(householdId, productId, input, normalizedName);
+}
+
+async function updateInventorySnapshotsForProduct(
+  householdId: string,
+  productId: string,
+  input: ProductInput,
+  normalizedName: string,
+): Promise<void> {
+  const snapshot = await getDocs(
+    query(inventoryRef(householdId), where("productId", "==", productId)),
+  );
+  if (snapshot.empty) return;
+
+  const batch = writeBatch(requireDb());
+  snapshot.docs.forEach((item) => {
+    batch.update(item.ref, {
+      name: input.name.trim(),
+      normalizedName,
+      barcode: input.barcode || null,
+      brand: input.brand || null,
+      category: input.category || null,
+      imageUrl: input.imageUrl || null,
+      updatedAt: serverTimestamp(),
+    });
+  });
+  await batch.commit();
 }
 
 export async function createPublicProductFromSubmission(

@@ -16,7 +16,6 @@ interface DetailView {
 }
 
 export function Dashboard({
-  householdId,
   items,
   summary,
   loading,
@@ -73,25 +72,7 @@ export function Dashboard({
   return (
     <section className="space-y-4 pb-3">
       <Card className="p-4">
-        <div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-kitchen-muted">
-              {new Date().toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "short",
-                day: "numeric",
-              })}
-            </p>
-            <h1 className="mt-1 text-2xl font-black tracking-normal text-kitchen-ink">
-              Food status
-            </h1>
-            <p className="mt-0.5 truncate text-sm font-semibold text-kitchen-muted">
-              {householdId}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-[1.1fr_0.9fr] gap-3">
+        <div className="grid grid-cols-[1.1fr_0.9fr] gap-3">
           <button
             type="button"
             onClick={() => openDetail("Need attention", statusText, urgentItems)}
@@ -234,7 +215,7 @@ export function Dashboard({
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-black text-kitchen-ink">Use first</h2>
+          <h2 className="text-lg font-black text-kitchen-ink">Recommend to consume</h2>
           <span className="text-xs font-bold text-kitchen-muted">{useFirst.length} shown</span>
         </div>
         {loading ? (
