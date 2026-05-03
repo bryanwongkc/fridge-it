@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HouseholdProduct, PublicProduct } from "../types/product";
 import { subscribeHouseholdProducts, subscribePublicProducts } from "../services/productsService";
 import { isFirebaseConfigured } from "../firebase";
+import { friendlyErrorMessage } from "../utils/friendlyErrors";
 
 export function useProducts(householdId: string | null) {
   const [personalProducts, setPersonalProducts] = useState<HouseholdProduct[]>([]);
@@ -23,13 +24,13 @@ export function useProducts(householdId: string | null) {
         setLoading(false);
       },
       (err) => {
-        setError(err.message);
+        setError(friendlyErrorMessage(err, "product"));
         setLoading(false);
       },
     );
     const unsubPublic = subscribePublicProducts(
       setPublicProducts,
-      (err) => setError(err.message),
+      (err) => setError(friendlyErrorMessage(err, "product")),
     );
 
     return () => {

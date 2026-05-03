@@ -17,6 +17,7 @@ import { useSubmissions } from "./hooks/useSubmissions";
 import { reduceInventoryQuantity, setInventoryStatus } from "./services/inventoryService";
 import { addShoppingItem } from "./services/shoppingService";
 import type { InventoryItem } from "./types/inventory";
+import { friendlyErrorMessage } from "./utils/friendlyErrors";
 
 export type Tab = "dashboard" | "add" | "inventory" | "shopping" | "admin";
 
@@ -35,35 +36,45 @@ export default function App() {
 
   const handleUsed = async (item: InventoryItem) => {
     if (!householdId) return;
-    if (item.quantity > 1) {
-      const amountRaw = window.prompt(`Reduce ${item.name} by how much?`, "1");
-      const amount = Math.max(1, Number(amountRaw) || 1);
-      await reduceInventoryQuantity(householdId, item, amount);
-    } else {
-      await setInventoryStatus(householdId, item, "used");
-    }
-    const addToList = window.confirm("Add to shopping list?");
-    if (addToList) {
-      await addShoppingItem(householdId, {
-        name: item.name,
-        productId: item.productId,
-        publicProductId: item.publicProductId,
-        unit: item.unit,
-        source: "used_up",
-      });
+    try {
+      if (item.quantity > 1) {
+        const amountRaw = window.prompt(`Reduce ${item.name} by how much?`, "1");
+        const amount = Math.max(1, Number(amountRaw) || 1);
+        await reduceInventoryQuantity(householdId, item, amount);
+      } else {
+        await setInventoryStatus(householdId, item, "used");
+      }
+      const addToList = window.confirm("Add to shopping list?");
+      if (addToList) {
+        await addShoppingItem(householdId, {
+          name: item.name,
+          productId: item.productId,
+          publicProductId: item.publicProductId,
+          unit: item.unit,
+          source: "used_up",
+        });
+      }
+    } catch (error) {
+      console.error("Inventory used action failed", error);
+      window.alert(friendlyErrorMessage(error, "stock"));
     }
   };
 
   const handleShopping = async (item: InventoryItem) => {
     if (!householdId) return;
-    await addShoppingItem(householdId, {
-      name: item.name,
-      productId: item.productId,
-      publicProductId: item.publicProductId,
-      unit: item.unit,
-      source: "inventory_action",
-    });
-    setActiveTab("shopping");
+    try {
+      await addShoppingItem(householdId, {
+        name: item.name,
+        productId: item.productId,
+        publicProductId: item.publicProductId,
+        unit: item.unit,
+        source: "inventory_action",
+      });
+      setActiveTab("shopping");
+    } catch (error) {
+      console.error("Shopping add failed", error);
+      window.alert(friendlyErrorMessage(error, "shopping"));
+    }
   };
 
   if (authLoading) {

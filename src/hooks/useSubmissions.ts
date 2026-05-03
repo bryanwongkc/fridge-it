@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isFirebaseConfigured } from "../firebase";
 import { subscribeSubmissions } from "../services/submissionsService";
 import type { ProductSubmission } from "../types/submission";
+import { friendlyErrorMessage } from "../utils/friendlyErrors";
 
 export function useSubmissions(enabled: boolean) {
   const [submissions, setSubmissions] = useState<ProductSubmission[]>([]);
@@ -20,7 +21,7 @@ export function useSubmissions(enabled: boolean) {
         setLoading(false);
       },
       (err) => {
-        setError(err.message);
+        setError(friendlyErrorMessage(err, "product"));
         setLoading(false);
       },
     );

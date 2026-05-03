@@ -3,10 +3,12 @@ import { useMemo, useState, type ReactNode } from "react";
 import { searchProducts } from "../../services/productLookup";
 import { createPersonalProductFromPublic } from "../../services/productsService";
 import type { HouseholdProduct, PublicProduct } from "../../types/product";
+import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { normalizeText } from "../../utils/normalize";
 import { Button } from "../common/Button";
 import { Card } from "../common/Card";
 import { EmptyState } from "../common/EmptyState";
+import { Notice } from "../common/Notice";
 
 export function ManualProductSearch({
   householdId,
@@ -25,6 +27,7 @@ export function ManualProductSearch({
 }) {
   const [query, setQuery] = useState("");
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const results = useMemo(
     () => searchProducts(personalProducts, publicProducts, query),
     [personalProducts, publicProducts, query],
@@ -35,9 +38,16 @@ export function ManualProductSearch({
 
   const selectPublic = async (product: PublicProduct) => {
     setLinkingId(product.id);
-    const personal = await createPersonalProductFromPublic(householdId, product, userId);
-    setLinkingId(null);
-    onSelect(personal, "Public library");
+    setError(null);
+    try {
+      const personal = await createPersonalProductFromPublic(householdId, product, userId);
+      onSelect(personal, "Public library");
+    } catch (err) {
+      console.error("Public product selection failed", err);
+      setError(friendlyErrorMessage(err, "product"));
+    } finally {
+      setLinkingId(null);
+    }
   };
 
   return (
@@ -46,6 +56,7 @@ export function ManualProductSearch({
         <h1 className="text-xl font-black text-kitchen-ink">Search or add product</h1>
         <p className="text-sm text-kitchen-muted">Start with the food name.</p>
       </div>
+      {error ? <Notice tone="danger">{error}</Notice> : null}
       <div className="flex min-h-12 items-center gap-2 rounded-2xl border border-kitchen-line bg-white px-4 focus-within:border-kitchen-green">
         <Search size={18} className="text-kitchen-muted" />
         <input

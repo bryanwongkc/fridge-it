@@ -13,9 +13,11 @@ import {
 import { updatePersonalProduct } from "../../services/productsService";
 import type { InventoryInput, InventoryItem } from "../../types/inventory";
 import type { HouseholdProduct, ProductInput } from "../../types/product";
+import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { normalizeText } from "../../utils/normalize";
 import { LoadingState } from "../common/LoadingState";
 import { Button } from "../common/Button";
+import { Notice } from "../common/Notice";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { InputMethodPicker } from "./InputMethodPicker";
 import { ManualProductSearch } from "./ManualProductSearch";
@@ -58,8 +60,10 @@ export function AddStock({
   const [initialBarcode, setInitialBarcode] = useState<string | null>(null);
   const [offDraft, setOffDraft] = useState<ProductInput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"success" | "warning" | "danger">("success");
 
   const selectProduct = (product: HouseholdProduct, label: string) => {
+    setMessageTone("success");
     setSelectedProduct(product);
     setSourceLabel(label);
     setStep("confirm");
@@ -67,6 +71,7 @@ export function AddStock({
 
   const scanBarcode = async (barcode: string) => {
     setStep("choose");
+    setMessageTone("success");
     setMessage("Looking up product...");
     try {
       const result: BarcodeLookupResult = await lookupByBarcode(householdId, barcode, userId);
@@ -90,7 +95,9 @@ export function AddStock({
         setStep("create");
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Barcode lookup failed.");
+      console.error("Barcode lookup failed", error);
+      setMessageTone("warning");
+      setMessage(friendlyErrorMessage(error, "lookup"));
       setInitialBarcode(barcode);
       setStep("create");
     }
@@ -121,22 +128,28 @@ export function AddStock({
       return;
     }
 
-    const product = await createManualPersonalProduct(
-      householdId,
-      {
-        name: item.name,
-        barcode: item.barcode,
-        brand: item.brand,
-        category: item.category,
-        imageUrl: item.imageUrl,
-        defaultUnit: item.unit,
-        defaultLocation: item.location,
-        defaultShelfLifeDays: null,
-      },
-      userId,
-      item.barcode ? "manual_after_scan" : "manual",
-    );
-    selectProduct(product, "Previous item");
+    try {
+      const product = await createManualPersonalProduct(
+        householdId,
+        {
+          name: item.name,
+          barcode: item.barcode,
+          brand: item.brand,
+          category: item.category,
+          imageUrl: item.imageUrl,
+          defaultUnit: item.unit,
+          defaultLocation: item.location,
+          defaultShelfLifeDays: null,
+        },
+        userId,
+        item.barcode ? "manual_after_scan" : "manual",
+      );
+      selectProduct(product, "Previous item");
+    } catch (error) {
+      console.error("Previous item reuse failed", error);
+      setMessageTone("danger");
+      setMessage(friendlyErrorMessage(error, "product"));
+    }
   };
 
   const updateSelectedProduct = async (input: ProductInput) => {
@@ -190,9 +203,7 @@ export function AddStock({
   return (
     <section className="space-y-5 pb-4">
       {message ? (
-        <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-kitchen-green">
-          {message}
-        </div>
+        <Notice tone={messageTone}>{message}</Notice>
       ) : null}
 
       {step === "choose" ? (

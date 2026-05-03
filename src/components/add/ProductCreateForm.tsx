@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
 import type { ProductInput, ProductLocation } from "../../types/product";
+import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { Button } from "../common/Button";
 import { Card } from "../common/Card";
+import { Notice } from "../common/Notice";
 
 const locations: ProductLocation[] = ["fridge", "freezer", "pantry", "other"];
 const categoryOptions = [
@@ -71,22 +73,30 @@ export function ProductCreateForm({
     initialProduct?.defaultShelfLifeDays?.toString() || "",
   );
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    await onSubmit({
-      name,
-      brand: brand || null,
-      category: category || null,
-      barcode: barcode || null,
-      imageUrl: imageUrl || null,
-      defaultUnit: defaultUnit || null,
-      defaultLocation,
-      defaultShelfLifeDays: defaultShelfLifeDays ? Number(defaultShelfLifeDays) : null,
-    });
-    setSaving(false);
+    setError(null);
+    try {
+      await onSubmit({
+        name,
+        brand: brand || null,
+        category: category || null,
+        barcode: barcode || null,
+        imageUrl: imageUrl || null,
+        defaultUnit: defaultUnit || null,
+        defaultLocation,
+        defaultShelfLifeDays: defaultShelfLifeDays ? Number(defaultShelfLifeDays) : null,
+      });
+    } catch (err) {
+      console.error("Product form submit failed", err);
+      setError(friendlyErrorMessage(err, "product"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -96,6 +106,7 @@ export function ProductCreateForm({
           <h1 className="text-xl font-black text-kitchen-ink">Create product</h1>
           <p className="text-sm text-kitchen-muted">Add the useful defaults. Stock comes next.</p>
         </div>
+        {error ? <Notice tone="danger">{error}</Notice> : null}
         <label className="block">
           <span className="text-sm font-semibold text-kitchen-ink">Name</span>
           <input

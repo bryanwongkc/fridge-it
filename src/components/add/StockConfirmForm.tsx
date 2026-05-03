@@ -2,9 +2,11 @@ import { CalendarDays, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { HouseholdProduct, ProductLocation } from "../../types/product";
 import { addDays, formatDate } from "../../utils/dates";
+import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { Badge } from "../common/Badge";
 import { Button } from "../common/Button";
 import { Card } from "../common/Card";
+import { Notice } from "../common/Notice";
 
 const locations: ProductLocation[] = ["fridge", "freezer", "pantry", "other"];
 const dayPresets = [
@@ -48,6 +50,7 @@ export function StockConfirmForm({
   const [notesOpen, setNotesOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const suggestedDate = useMemo(
     () =>
       product.defaultShelfLifeDays
@@ -58,15 +61,22 @@ export function StockConfirmForm({
 
   const save = async () => {
     setSaving(true);
-    await onSave({
-      quantity,
-      unit,
-      location,
-      expiryDate: hasNoExpiry ? null : expiryDate,
-      hasNoExpiry,
-      notes: notes || null,
-    });
-    setSaving(false);
+    setError(null);
+    try {
+      await onSave({
+        quantity,
+        unit,
+        location,
+        expiryDate: hasNoExpiry ? null : expiryDate,
+        hasNoExpiry,
+        notes: notes || null,
+      });
+    } catch (err) {
+      console.error("Stock confirmation failed", err);
+      setError(friendlyErrorMessage(err, "stock"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,6 +101,7 @@ export function StockConfirmForm({
       </Card>
 
       <Card className="space-y-5">
+        {error ? <Notice tone="danger">{error}</Notice> : null}
         <div>
           <span className="text-sm font-semibold text-kitchen-ink">Quantity</span>
           <div className="mt-2 flex items-center gap-3">

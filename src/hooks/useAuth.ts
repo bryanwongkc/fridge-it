@@ -1,6 +1,7 @@
 import { onAuthStateChanged, signInAnonymously, type User } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth, isFirebaseConfigured } from "../firebase";
+import { friendlyErrorMessage } from "../utils/friendlyErrors";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -10,7 +11,7 @@ export function useAuth() {
   useEffect(() => {
     if (!auth) {
       setLoading(false);
-      setError("Firebase is not configured. Add .env values to enable live data.");
+      setError(friendlyErrorMessage(new Error("not configured"), "auth"));
       return;
     }
 
@@ -26,12 +27,12 @@ export function useAuth() {
           setUser(nextUser);
           setLoading(false);
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Could not sign in anonymously.");
+          setError(friendlyErrorMessage(err, "auth"));
           setLoading(false);
         }
       },
       (err) => {
-        setError(err.message);
+        setError(friendlyErrorMessage(err, "auth"));
         setLoading(false);
       },
     );

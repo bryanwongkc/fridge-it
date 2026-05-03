@@ -3,6 +3,7 @@ import { isFirebaseConfigured } from "../firebase";
 import { subscribeInventory } from "../services/inventoryService";
 import type { InventoryItem } from "../types/inventory";
 import { getExpiryStatus } from "../utils/expiry";
+import { friendlyErrorMessage } from "../utils/friendlyErrors";
 
 export function useInventory(householdId: string | null) {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -22,7 +23,7 @@ export function useInventory(householdId: string | null) {
         setLoading(false);
       },
       (err) => {
-        setError(err.message);
+        setError(friendlyErrorMessage(err, "stock"));
         setLoading(false);
       },
     );

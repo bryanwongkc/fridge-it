@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isFirebaseConfigured } from "../firebase";
 import { subscribeShoppingList } from "../services/shoppingService";
 import type { ShoppingItem } from "../types/shopping";
+import { friendlyErrorMessage } from "../utils/friendlyErrors";
 
 export function useShoppingList(householdId: string | null) {
   const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -21,7 +22,7 @@ export function useShoppingList(householdId: string | null) {
         setLoading(false);
       },
       (err) => {
-        setError(err.message);
+        setError(friendlyErrorMessage(err, "shopping"));
         setLoading(false);
       },
     );
