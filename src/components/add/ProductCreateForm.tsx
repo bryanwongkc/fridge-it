@@ -74,6 +74,9 @@ export function ProductCreateForm({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(
+    Boolean(initialProduct?.brand || initialProduct?.defaultShelfLifeDays),
+  );
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -104,7 +107,7 @@ export function ProductCreateForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <h1 className="text-xl font-black text-kitchen-ink">Create product</h1>
-          <p className="text-sm text-kitchen-muted">Add the useful defaults. Stock comes next.</p>
+          <p className="text-sm text-kitchen-muted">Save it once. Next time, adding stock is faster.</p>
         </div>
         {error ? <Notice tone="danger">{error}</Notice> : null}
         <label className="block">
@@ -116,15 +119,10 @@ export function ProductCreateForm({
             className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
           />
         </label>
+        {barcode ? (
+          <Notice tone="success">Barcode saved. Next time, scanning this item will be faster.</Notice>
+        ) : null}
         <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-sm font-semibold text-kitchen-ink">Brand</span>
-            <input
-              value={brand}
-              onChange={(event) => setBrand(event.target.value)}
-              className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-            />
-          </label>
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Category</span>
             <select
@@ -140,27 +138,6 @@ export function ProductCreateForm({
               ))}
             </select>
           </label>
-        </div>
-        <div>
-          <span className="text-sm font-semibold text-kitchen-ink">Default location</span>
-          <div className="mt-2 grid grid-cols-4 gap-2">
-            {locations.map((location) => (
-              <button
-                key={location}
-                type="button"
-                onClick={() => setDefaultLocation(location)}
-                className={`min-h-10 rounded-2xl text-xs font-bold capitalize ${
-                  defaultLocation === location
-                    ? "bg-kitchen-green text-white"
-                    : "bg-slate-100 text-kitchen-muted"
-                }`}
-              >
-                {location}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Unit</span>
             <select
@@ -176,6 +153,43 @@ export function ProductCreateForm({
               ))}
             </select>
           </label>
+        </div>
+        <div>
+          <span className="text-sm font-semibold text-kitchen-ink">Usually stored in</span>
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {locations.map((location) => (
+              <button
+                key={location}
+                type="button"
+                onClick={() => setDefaultLocation(location)}
+                className={`min-h-11 rounded-2xl text-xs font-bold capitalize ${
+                  defaultLocation === location
+                    ? "bg-kitchen-green text-white"
+                    : "bg-slate-100 text-kitchen-muted"
+                }`}
+              >
+                {location}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((value) => !value)}
+          className="text-sm font-bold text-kitchen-green"
+        >
+          {detailsOpen ? "Hide details" : "Add brand or shelf life"}
+        </button>
+        {detailsOpen ? (
+          <div className="space-y-4 rounded-2xl bg-slate-50 p-3">
+            <label className="block">
+              <span className="text-sm font-semibold text-kitchen-ink">Brand</span>
+              <input
+                value={brand}
+                onChange={(event) => setBrand(event.target.value)}
+                className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
+              />
+            </label>
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Shelf life</span>
             <input
@@ -183,18 +197,19 @@ export function ProductCreateForm({
               inputMode="numeric"
               placeholder="days"
               onChange={(event) => setDefaultShelfLifeDays(event.target.value)}
-              className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
+              className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
             />
           </label>
-        </div>
-        <label className="block">
-          <span className="text-sm font-semibold text-kitchen-ink">Barcode</span>
-          <input
-            value={barcode}
-            onChange={(event) => setBarcode(event.target.value)}
-            className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-          />
-        </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-kitchen-ink">Barcode</span>
+              <input
+                value={barcode}
+                onChange={(event) => setBarcode(event.target.value)}
+                className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
+              />
+            </label>
+          </div>
+        ) : null}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel

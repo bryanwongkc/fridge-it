@@ -19,11 +19,10 @@ import { LoadingState } from "../common/LoadingState";
 import { Button } from "../common/Button";
 import { Notice } from "../common/Notice";
 import { BarcodeScanner } from "./BarcodeScanner";
+import { FastAddList } from "./FastAddList";
 import { InputMethodPicker } from "./InputMethodPicker";
 import { ManualProductSearch } from "./ManualProductSearch";
-import { PreviousItems } from "./PreviousItems";
 import { ProductCreateForm } from "./ProductCreateForm";
-import { QuickAddRecent } from "./QuickAddRecent";
 import { StockConfirmForm } from "./StockConfirmForm";
 
 type AddStep =
@@ -210,8 +209,12 @@ export function AddStock({
         <>
           {message === "Looking up product..." ? <LoadingState label="Looking up product..." /> : null}
           <InputMethodPicker onScan={() => setStep("scan")} onManual={() => setStep("manual")} />
-          <QuickAddRecent products={recentProducts} onSelect={selectProduct} />
-          <PreviousItems items={previousInventoryItems} onSelect={(item) => void selectPreviousItem(item)} />
+          <FastAddList
+            products={recentProducts}
+            inventoryItems={previousInventoryItems}
+            onSelectProduct={selectProduct}
+            onSelectInventoryItem={(item) => void selectPreviousItem(item)}
+          />
         </>
       ) : null}
 
