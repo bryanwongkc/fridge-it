@@ -1,4 +1,4 @@
-import { Plus, Refrigerator, ShoppingBasket, X } from "lucide-react";
+import { Refrigerator, ShoppingBasket, X } from "lucide-react";
 import { useState } from "react";
 import type { InventoryItem } from "../../types/inventory";
 import { getDaysUntilExpiry, relativeExpiryLabel } from "../../utils/dates";
@@ -20,7 +20,6 @@ export function Dashboard({
   items,
   summary,
   loading,
-  onAddStock,
   onUsed,
   onShopping,
   onEdit,
@@ -74,7 +73,7 @@ export function Dashboard({
   return (
     <section className="space-y-4 pb-3">
       <Card className="p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-kitchen-muted">
               {new Date().toLocaleDateString(undefined, {
@@ -90,13 +89,6 @@ export function Dashboard({
               {householdId}
             </p>
           </div>
-          <Button
-            onClick={onAddStock}
-            icon={<Plus size={16} />}
-            className="min-h-10 shrink-0 px-3"
-          >
-            Add
-          </Button>
         </div>
 
         <div className="mt-4 grid grid-cols-[1.1fr_0.9fr] gap-3">
