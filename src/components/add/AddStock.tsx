@@ -13,6 +13,7 @@ import { updatePersonalProduct } from "../../services/productsService";
 import type { InventoryInput, InventoryItem } from "../../types/inventory";
 import type { HouseholdProduct, ProductInput } from "../../types/product";
 import { friendlyErrorMessage } from "../../utils/friendlyErrors";
+import { mergeCategories } from "../../utils/categories";
 import { normalizeText } from "../../utils/normalize";
 import { LoadingState } from "../common/LoadingState";
 import { Button } from "../common/Button";
@@ -57,6 +58,11 @@ export function AddStock({
   const [createDraft, setCreateDraft] = useState<ProductInput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "warning" | "danger">("success");
+  const categoryOptions = mergeCategories([
+    ...personalProducts.map((product) => product.category),
+    ...recentProducts.map((product) => product.category),
+    ...previousInventoryItems.map((item) => item.category),
+  ]);
 
   const startManualCreate = (draft: ProductInput) => {
     setCreateDraft(draft);
@@ -272,6 +278,7 @@ export function AddStock({
           initialProduct={createDraft || undefined}
           initialName={initialCreateName}
           initialBarcode={initialBarcode}
+          categoryOptions={categoryOptions}
           submitLabel="Create and add stock"
           onCancel={() => setStep("manual")}
           onScanBarcode={scanBarcodeForCreate}
@@ -282,6 +289,7 @@ export function AddStock({
       {step === "edit_product" && selectedProduct ? (
         <ProductCreateForm
           initialProduct={selectedProduct}
+          categoryOptions={categoryOptions}
           submitLabel="Save changes"
           onCancel={() => setStep("confirm")}
           onSubmit={updateSelectedProduct}

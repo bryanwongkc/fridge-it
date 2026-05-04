@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { mergeInventoryQuantity, updateInventoryItem } from "../../services/inventoryService";
 import type { InventoryItem } from "../../types/inventory";
 import type { ProductLocation } from "../../types/product";
+import { mergeCategories } from "../../utils/categories";
 import { getExpiryStatus } from "../../utils/expiry";
 import { normalizeText } from "../../utils/normalize";
 import { EmptyState } from "../common/EmptyState";
@@ -16,27 +17,6 @@ const locationFilters: Array<"all" | ProductLocation> = [
   "pantry",
   "other",
 ];
-
-const categoryFilters = [
-  "all",
-  "dairy",
-  "meat",
-  "fruit",
-  "vegetables",
-  "eggs",
-  "seafood",
-  "frozen",
-  "pantry",
-  "bakery",
-  "drinks",
-  "other",
-] as const;
-
-function categoryLabel(category: (typeof categoryFilters)[number]) {
-  if (category === "all") return "All";
-  if (category === "dairy") return "Dairy";
-  return category.charAt(0).toUpperCase() + category.slice(1);
-}
 
 export function InventoryPage({
   householdId,
@@ -53,8 +33,12 @@ export function InventoryPage({
 }) {
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState<(typeof locationFilters)[number]>("all");
-  const [categoryFilter, setCategoryFilter] = useState<(typeof categoryFilters)[number]>("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [editing, setEditing] = useState<InventoryItem | null>(null);
+  const categoryFilters = useMemo(
+    () => ["all", ...mergeCategories(items.map((item) => item.category)), "other"],
+    [items],
+  );
 
   const filtered = useMemo(() => {
     const normalized = normalizeText(query);
@@ -69,14 +53,14 @@ export function InventoryPage({
         if (categoryFilter === "all") return true;
         const normalizedCategory = item.category ? normalizeText(item.category) : "";
         if (categoryFilter === "other") {
-          return (
-            !normalizedCategory ||
-            !categoryFilters.includes(normalizedCategory as (typeof categoryFilters)[number])
-          );
+          const known = categoryFilters
+            .filter((category) => !["all", "other"].includes(category))
+            .map(normalizeText);
+          return !normalizedCategory || !known.includes(normalizedCategory);
         }
-        return normalizedCategory === categoryFilter;
+        return normalizedCategory === normalizeText(categoryFilter);
       });
-  }, [categoryFilter, items, locationFilter, query]);
+  }, [categoryFilter, categoryFilters, items, locationFilter, query]);
 
   const groups = [
     { title: "Expired", items: filtered.filter((item) => getExpiryStatus(item.expiryDate, item.hasNoExpiry) === "expired") },
@@ -131,7 +115,7 @@ export function InventoryPage({
                   : "bg-white text-kitchen-muted"
               }`}
             >
-              {categoryLabel(nextFilter)}
+              {nextFilter === "all" ? "All" : nextFilter === "other" ? "Other" : nextFilter}
             </button>
           ))}
         </div>

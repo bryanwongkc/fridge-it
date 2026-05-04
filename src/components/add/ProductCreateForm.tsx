@@ -1,25 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Barcode } from "lucide-react";
 import type { ProductInput, ProductLocation } from "../../types/product";
+import { mergeCategories } from "../../utils/categories";
 import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { Button } from "../common/Button";
 import { Card } from "../common/Card";
 import { Notice } from "../common/Notice";
 
 const locations: ProductLocation[] = ["fridge", "freezer", "pantry", "other"];
-const categoryOptions = [
-  "Dairy",
-  "Eggs",
-  "Meat",
-  "Seafood",
-  "Vegetables",
-  "Fruit",
-  "Bakery",
-  "Frozen",
-  "Pantry",
-  "Drinks",
-  "Other",
-];
 const unitOptions = [
   "item",
   "pack",
@@ -39,15 +27,11 @@ const unitOptions = [
   "other",
 ];
 
-function getSelectValue(value: string | null | undefined, options: string[]) {
-  if (!value) return "";
-  return options.includes(value) ? value : options[options.length - 1];
-}
-
 export function ProductCreateForm({
   initialName = "",
   initialBarcode = null,
   initialProduct,
+  categoryOptions = [],
   submitLabel = "Save product",
   onCancel,
   onScanBarcode,
@@ -56,18 +40,25 @@ export function ProductCreateForm({
   initialName?: string;
   initialBarcode?: string | null;
   initialProduct?: ProductInput;
+  categoryOptions?: string[];
   submitLabel?: string;
   onCancel: () => void;
   onScanBarcode?: (draft: ProductInput) => void;
   onSubmit: (input: ProductInput) => Promise<void>;
 }) {
+  const categoryListId = useId();
+  const mergedCategoryOptions = mergeCategories(categoryOptions);
   const [name, setName] = useState(initialProduct?.name || initialName);
   const [brand, setBrand] = useState(initialProduct?.brand || "");
-  const [category, setCategory] = useState(getSelectValue(initialProduct?.category, categoryOptions));
+  const [category, setCategory] = useState(initialProduct?.category || "");
   const [barcode, setBarcode] = useState(initialProduct?.barcode || initialBarcode || "");
   const imageUrl = initialProduct?.imageUrl || "";
   const [defaultUnit, setDefaultUnit] = useState(
-    getSelectValue(initialProduct?.defaultUnit, unitOptions),
+    initialProduct?.defaultUnit
+      ? unitOptions.includes(initialProduct.defaultUnit)
+        ? initialProduct.defaultUnit
+        : "other"
+      : "",
   );
   const [defaultLocation, setDefaultLocation] = useState<ProductLocation>(
     initialProduct?.defaultLocation || "fridge",
@@ -152,18 +143,18 @@ export function ProductCreateForm({
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Category</span>
-            <select
+            <input
               value={category}
               onChange={(event) => setCategory(event.target.value)}
+              list={categoryListId}
+              placeholder="Select or type"
               className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
-            >
-              <option value="">Select</option>
-              {categoryOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+            />
+            <datalist id={categoryListId}>
+              {mergedCategoryOptions.map((option) => (
+                <option key={option} value={option} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Unit</span>
