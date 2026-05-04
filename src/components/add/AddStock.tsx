@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   createManualPersonalProduct,
-  createPersonalProductFromOffDraft,
   lookupByBarcode,
   type BarcodeLookupResult,
 } from "../../services/productLookup";
@@ -28,10 +27,10 @@ import { StockConfirmForm } from "./StockConfirmForm";
 type AddStep =
   | "choose"
   | "scan"
+  | "scan_for_create"
   | "manual"
   | "create"
   | "confirm"
-  | "off_review"
   | "edit_product"
   | "success";
 
@@ -39,7 +38,6 @@ export function AddStock({
   householdId,
   userId,
   personalProducts,
-  publicProducts,
   recentProducts,
   previousInventoryItems,
   onDone,
@@ -47,7 +45,6 @@ export function AddStock({
   householdId: string;
   userId: string | null;
   personalProducts: HouseholdProduct[];
-  publicProducts: Parameters<typeof ManualProductSearch>[0]["publicProducts"];
   recentProducts: HouseholdProduct[];
   previousInventoryItems: InventoryItem[];
   onDone: () => void;
@@ -57,9 +54,16 @@ export function AddStock({
   const [sourceLabel, setSourceLabel] = useState("Your library");
   const [initialCreateName, setInitialCreateName] = useState("");
   const [initialBarcode, setInitialBarcode] = useState<string | null>(null);
-  const [offDraft, setOffDraft] = useState<ProductInput | null>(null);
+  const [createDraft, setCreateDraft] = useState<ProductInput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "warning" | "danger">("success");
+
+  const startManualCreate = (draft: ProductInput) => {
+    setCreateDraft(draft);
+    setInitialCreateName(draft.name);
+    setInitialBarcode(draft.barcode || null);
+    setStep("create");
+  };
 
   const selectProduct = (product: HouseholdProduct, label: string) => {
     setMessageTone("success");
@@ -71,45 +75,58 @@ export function AddStock({
   const scanBarcode = async (barcode: string) => {
     setStep("choose");
     setMessageTone("success");
-    setMessage("Looking up product...");
+    setMessage("Looking up saved product...");
     try {
-      const result: BarcodeLookupResult = await lookupByBarcode(householdId, barcode, userId);
-      setMessage(
-        result.source === "personal"
-          ? "Found in your library"
-          : result.source === "public"
-            ? "Found in public library"
-            : result.source === "open_food_facts"
-              ? "Found online"
-              : "Product not found. Add it once and we’ll remember it next time.",
-      );
-      if (result.source === "personal") selectProduct(result.product, "Your library");
-      else if (result.source === "public") selectProduct(result.product, "Public library");
-      else if (result.source === "open_food_facts") {
-        setOffDraft(result.productDraft);
-        setStep("off_review");
-      } else {
-        setInitialBarcode(result.barcode);
-        setInitialCreateName("");
-        setStep("create");
+      const result: BarcodeLookupResult = await lookupByBarcode(householdId, barcode);
+      if (result.source === "personal") {
+        setMessage("Found in your library");
+        selectProduct(result.product, "Your library");
+        return;
       }
+
+      setMessage("Product not found. Add it manually once and we will remember this barcode.");
+      startManualCreate({
+        name: "",
+        barcode: result.barcode,
+        defaultLocation: "fridge",
+      });
     } catch (error) {
       console.error("Barcode lookup failed", error);
       setMessageTone("warning");
       setMessage(friendlyErrorMessage(error, "lookup"));
-      setInitialBarcode(barcode);
-      setStep("create");
+      startManualCreate({
+        name: "",
+        barcode,
+        defaultLocation: "fridge",
+      });
     }
+  };
+
+  const scanBarcodeForCreate = (draft: ProductInput) => {
+    setCreateDraft(draft);
+    setInitialCreateName(draft.name);
+    setInitialBarcode(draft.barcode || null);
+    setStep("scan_for_create");
+  };
+
+  const saveBarcodeForCreate = (barcode: string) => {
+    const draft = createDraft || {
+      name: initialCreateName,
+      barcode: initialBarcode,
+      defaultLocation: "fridge",
+    };
+    startManualCreate({
+      ...draft,
+      barcode,
+      defaultLocation: draft.defaultLocation || "fridge",
+    });
+    setMessageTone("success");
+    setMessage("Barcode saved with this manual product.");
   };
 
   const createManual = async (input: ProductInput, source: "manual" | "manual_after_scan") => {
     const product = await createManualPersonalProduct(householdId, input, userId, source);
     selectProduct(product, "Manual");
-  };
-
-  const createFromOff = async (input: ProductInput) => {
-    const product = await createPersonalProductFromOffDraft(householdId, input, userId);
-    selectProduct(product, "Online lookup");
   };
 
   const selectPreviousItem = async (item: InventoryItem) => {
@@ -201,21 +218,23 @@ export function AddStock({
 
   return (
     <section className="space-y-5 pb-4">
-      {message ? (
-        <Notice tone={messageTone}>{message}</Notice>
-      ) : null}
+      {message ? <Notice tone={messageTone}>{message}</Notice> : null}
 
       {step === "choose" ? (
         <>
-          {message === "Looking up product..." ? <LoadingState label="Looking up product..." /> : null}
+          {message === "Looking up saved product..." ? (
+            <LoadingState label="Looking up saved product..." />
+          ) : null}
           <InputMethodPicker
             onScan={() => setStep("scan")}
             onManual={() => setStep("manual")}
-            onManualAdd={() => {
-              setInitialCreateName("");
-              setInitialBarcode(null);
-              setStep("create");
-            }}
+            onManualAdd={() =>
+              startManualCreate({
+                name: "",
+                barcode: null,
+                defaultLocation: "fridge",
+              })
+            }
           />
           <FastAddList
             products={recentProducts}
@@ -226,39 +245,37 @@ export function AddStock({
         </>
       ) : null}
 
-      {step === "scan" ? <BarcodeScanner onDetected={scanBarcode} onCancel={() => setStep("choose")} /> : null}
+      {step === "scan" ? (
+        <BarcodeScanner onDetected={scanBarcode} onCancel={() => setStep("choose")} />
+      ) : null}
+
+      {step === "scan_for_create" ? (
+        <BarcodeScanner onDetected={saveBarcodeForCreate} onCancel={() => setStep("create")} />
+      ) : null}
 
       {step === "manual" ? (
         <ManualProductSearch
-          householdId={householdId}
-          userId={userId}
           personalProducts={personalProducts}
-          publicProducts={publicProducts}
           onSelect={selectProduct}
-          onCreate={(name) => {
-            setInitialCreateName(name);
-            setInitialBarcode(null);
-            setStep("create");
-          }}
+          onCreate={(name) =>
+            startManualCreate({
+              name,
+              barcode: null,
+              defaultLocation: "fridge",
+            })
+          }
         />
       ) : null}
 
       {step === "create" ? (
         <ProductCreateForm
+          initialProduct={createDraft || undefined}
           initialName={initialCreateName}
           initialBarcode={initialBarcode}
           submitLabel="Create and add stock"
           onCancel={() => setStep("manual")}
-          onSubmit={(input) => createManual(input, initialBarcode ? "manual_after_scan" : "manual")}
-        />
-      ) : null}
-
-      {step === "off_review" && offDraft ? (
-        <ProductCreateForm
-          initialProduct={offDraft}
-          submitLabel="Save and add stock"
-          onCancel={() => setStep("choose")}
-          onSubmit={createFromOff}
+          onScanBarcode={scanBarcodeForCreate}
+          onSubmit={(input) => createManual(input, input.barcode ? "manual_after_scan" : "manual")}
         />
       ) : null}
 

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Barcode } from "lucide-react";
 import type { ProductInput, ProductLocation } from "../../types/product";
 import { friendlyErrorMessage } from "../../utils/friendlyErrors";
 import { Button } from "../common/Button";
@@ -49,6 +50,7 @@ export function ProductCreateForm({
   initialProduct,
   submitLabel = "Save product",
   onCancel,
+  onScanBarcode,
   onSubmit,
 }: {
   initialName?: string;
@@ -56,6 +58,7 @@ export function ProductCreateForm({
   initialProduct?: ProductInput;
   submitLabel?: string;
   onCancel: () => void;
+  onScanBarcode?: (draft: ProductInput) => void;
   onSubmit: (input: ProductInput) => Promise<void>;
 }) {
   const [name, setName] = useState(initialProduct?.name || initialName);
@@ -78,22 +81,24 @@ export function ProductCreateForm({
     Boolean(initialProduct?.brand || initialProduct?.defaultShelfLifeDays),
   );
 
+  const getCurrentInput = (): ProductInput => ({
+    name,
+    brand: brand || null,
+    category: category || null,
+    barcode: barcode || null,
+    imageUrl: imageUrl || null,
+    defaultUnit: defaultUnit || null,
+    defaultLocation,
+    defaultShelfLifeDays: defaultShelfLifeDays ? Number(defaultShelfLifeDays) : null,
+  });
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
     setError(null);
     try {
-      await onSubmit({
-        name,
-        brand: brand || null,
-        category: category || null,
-        barcode: barcode || null,
-        imageUrl: imageUrl || null,
-        defaultUnit: defaultUnit || null,
-        defaultLocation,
-        defaultShelfLifeDays: defaultShelfLifeDays ? Number(defaultShelfLifeDays) : null,
-      });
+      await onSubmit(getCurrentInput());
     } catch (err) {
       console.error("Product form submit failed", err);
       setError(friendlyErrorMessage(err, "product"));
@@ -119,9 +124,31 @@ export function ProductCreateForm({
             className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line px-4 outline-none focus:border-kitchen-green"
           />
         </label>
-        {barcode ? (
-          <Notice tone="success">Barcode saved. Next time, scanning this item will be faster.</Notice>
-        ) : null}
+        <div className="space-y-2 rounded-2xl bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-kitchen-ink">Barcode</span>
+            {onScanBarcode ? (
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<Barcode size={18} />}
+                onClick={() => onScanBarcode(getCurrentInput())}
+              >
+                Scan
+              </Button>
+            ) : null}
+          </div>
+          <input
+            value={barcode}
+            onChange={(event) => setBarcode(event.target.value)}
+            placeholder="Optional"
+            inputMode="numeric"
+            className="min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
+          />
+          {barcode ? (
+            <Notice tone="success">Barcode saved. Next time, scanning this item will be faster.</Notice>
+          ) : null}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm font-semibold text-kitchen-ink">Category</span>
@@ -200,14 +227,6 @@ export function ProductCreateForm({
               className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
             />
           </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-kitchen-ink">Barcode</span>
-              <input
-                value={barcode}
-                onChange={(event) => setBarcode(event.target.value)}
-                className="mt-1 min-h-12 w-full rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
-              />
-            </label>
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-3 pt-2">

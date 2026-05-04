@@ -126,7 +126,6 @@ export default function App() {
           householdId={householdId}
           userId={userId}
           personalProducts={products.personalProducts}
-          publicProducts={products.publicProducts}
           recentProducts={products.recentProducts}
           previousInventoryItems={inventory.items}
           onDone={() => setActiveTab("dashboard")}
