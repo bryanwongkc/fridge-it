@@ -7,6 +7,7 @@ import { Card } from "./components/common/Card";
 import { LoadingState } from "./components/common/LoadingState";
 import { Dashboard } from "./components/dashboard/Dashboard";
 import { InventoryPage } from "./components/inventory/InventoryPage";
+import { UsedAdjustSheet } from "./components/inventory/UsedAdjustSheet";
 import { AppShell } from "./components/layout/AppShell";
 import { ShoppingPage } from "./components/shopping/ShoppingPage";
 import { useAuth } from "./hooks/useAuth";
@@ -15,12 +16,20 @@ import { useInventory } from "./hooks/useInventory";
 import { useProducts } from "./hooks/useProducts";
 import { useShoppingList } from "./hooks/useShoppingList";
 import { useSubmissions } from "./hooks/useSubmissions";
-import { deleteInventoryItem, reduceInventoryQuantity, setInventoryStatus } from "./services/inventoryService";
+import {
+  deleteInventoryItem,
+  restoreInventoryItem,
+  updateInventoryItem,
+} from "./services/inventoryService";
 import { addShoppingItem } from "./services/shoppingService";
 import type { InventoryItem } from "./types/inventory";
 import { friendlyErrorMessage } from "./utils/friendlyErrors";
 
 export type Tab = "dashboard" | "add" | "inventory" | "shopping" | "admin";
+
+type UndoAction =
+  | { kind: "delete"; item: InventoryItem; message: string }
+  | { kind: "used"; item: InventoryItem; message: string };
 
 export default function App() {
   const { user, loading: authLoading, error: authError, isFirebaseConfigured } = useAuth();
@@ -30,18 +39,34 @@ export default function App() {
   const inventory = useInventory(householdId);
   const shopping = useShoppingList(householdId);
   const submissions = useSubmissions(adminMode);
+  const [usedItem, setUsedItem] = useState<InventoryItem | null>(null);
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
 
   useEffect(() => {
     if (!adminMode && activeTab === "admin") setActiveTab("dashboard");
   }, [activeTab, adminMode]);
 
-  const handleUsed = async (item: InventoryItem) => {
+  useEffect(() => {
+    if (!undoAction) return;
+    const timeout = window.setTimeout(() => setUndoAction(null), 20000);
+    return () => window.clearTimeout(timeout);
+  }, [undoAction]);
+
+  const handleUsed = (item: InventoryItem) => {
+    setUsedItem(item);
+  };
+
+  const handleApplyUsed = async (
+    item: InventoryItem,
+    fields: Partial<Pick<InventoryItem, "quantity" | "remainingPercent" | "status">>,
+    allUsed: boolean,
+  ) => {
     if (!householdId) return;
     try {
-      if (item.quantity > 1) {
-        await reduceInventoryQuantity(householdId, item, 1);
-      } else {
-        await setInventoryStatus(householdId, item, "used");
+      await updateInventoryItem(householdId, item.id, fields);
+      setUsedItem(null);
+      if (allUsed) {
+        setUndoAction({ kind: "used", item, message: `${item.name} marked all used.` });
       }
     } catch (error) {
       console.error("Inventory used action failed", error);
@@ -56,6 +81,7 @@ export default function App() {
         name: item.name,
         productId: item.productId,
         publicProductId: item.publicProductId,
+        quantity: 1,
         unit: item.unit,
         source: "inventory_action",
       });
@@ -72,8 +98,29 @@ export default function App() {
     if (!confirmed) return;
     try {
       await deleteInventoryItem(householdId, item.id);
+      setUndoAction({ kind: "delete", item, message: `${item.name} deleted.` });
     } catch (error) {
       console.error("Inventory delete failed", error);
+      window.alert(friendlyErrorMessage(error, "stock"));
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!householdId || !undoAction) return;
+    const action = undoAction;
+    setUndoAction(null);
+    try {
+      if (action.kind === "delete") {
+        await restoreInventoryItem(householdId, action.item);
+      } else {
+        await updateInventoryItem(householdId, action.item.id, {
+          quantity: action.item.quantity,
+          remainingPercent: action.item.remainingPercent ?? 100,
+          status: "active",
+        });
+      }
+    } catch (error) {
+      console.error("Undo inventory action failed", error);
       window.alert(friendlyErrorMessage(error, "stock"));
     }
   };
@@ -137,6 +184,7 @@ export default function App() {
           householdId={householdId}
           items={inventory.items}
           onUsed={handleUsed}
+          onShopping={handleShopping}
           onDelete={handleDeleteInventory}
         />
       ) : null}
@@ -161,7 +209,30 @@ export default function App() {
         />
       ) : null}
       <AppUpdateNotice />
+      <UsedAdjustSheet
+        item={usedItem}
+        onClose={() => setUsedItem(null)}
+        onSave={handleApplyUsed}
+      />
+      {undoAction ? <UndoToast action={undoAction} onUndo={handleUndo} /> : null}
     </AppShell>
+  );
+}
+
+function UndoToast({ action, onUndo }: { action: UndoAction; onUndo: () => void }) {
+  return (
+    <div className="fixed inset-x-4 bottom-24 z-[60] rounded-2xl bg-kitchen-ink px-4 py-3 text-white shadow-soft">
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-sm font-bold">{action.message}</p>
+        <button
+          type="button"
+          onClick={() => void onUndo()}
+          className="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-black text-kitchen-ink"
+        >
+          Undo
+        </button>
+      </div>
+    </div>
   );
 }
 

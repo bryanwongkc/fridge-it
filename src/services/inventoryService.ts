@@ -63,6 +63,7 @@ export async function createInventoryItem(
     id: itemRef.id,
     ...input,
     normalizedName: normalizeText(input.name),
+    remainingPercent: input.remainingPercent ?? 100,
     addedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     status: "active",
@@ -92,7 +93,14 @@ export async function updateInventoryItem(
   fields: Partial<
     Pick<
       InventoryItem,
-      "quantity" | "unit" | "location" | "expiryDate" | "hasNoExpiry" | "notes" | "status"
+      | "quantity"
+      | "unit"
+      | "location"
+      | "remainingPercent"
+      | "expiryDate"
+      | "hasNoExpiry"
+      | "notes"
+      | "status"
     >
   >,
 ): Promise<void> {
@@ -125,4 +133,14 @@ export async function reduceInventoryQuantity(
 
 export async function deleteInventoryItem(householdId: string, itemId: string): Promise<void> {
   await deleteDoc(doc(inventoryRef(householdId), itemId));
+}
+
+export async function restoreInventoryItem(
+  householdId: string,
+  item: InventoryItem,
+): Promise<void> {
+  await setDoc(doc(inventoryRef(householdId), item.id), {
+    ...item,
+    updatedAt: serverTimestamp(),
+  });
 }

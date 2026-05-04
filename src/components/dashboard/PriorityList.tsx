@@ -1,6 +1,7 @@
 import type { InventoryItem } from "../../types/inventory";
 import { relativeExpiryLabel } from "../../utils/dates";
 import { expiryTone, getExpiryStatus } from "../../utils/expiry";
+import { remainingLabel } from "../../utils/inventoryRemaining";
 import { Badge } from "../common/Badge";
 import { Button } from "../common/Button";
 import { Card } from "../common/Card";
@@ -61,8 +62,11 @@ export function PriorityList({
                   <div className="min-w-0">
                     <h3 className="truncate text-sm font-black text-kitchen-ink">{item.name}</h3>
                     <p className="mt-0.5 truncate text-xs font-semibold text-kitchen-muted">
-                      {item.quantity} {item.unit} · {item.location}
-                      {item.category ? ` · ${item.category}` : ""}
+                      {item.quantity} {item.unit} - {item.location}
+                      {item.category ? ` - ${item.category}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs font-black text-kitchen-green">
+                      {remainingLabel(item)}
                     </p>
                   </div>
                   <Badge className={`shrink-0 px-2 py-0.5 text-[10px] ${expiryTone(status)}`}>

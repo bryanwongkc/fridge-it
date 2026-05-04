@@ -1,7 +1,6 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { mergeInventoryQuantity, updateInventoryItem } from "../../services/inventoryService";
-import { addShoppingItem } from "../../services/shoppingService";
 import type { InventoryItem } from "../../types/inventory";
 import type { ProductLocation } from "../../types/product";
 import { getExpiryStatus } from "../../utils/expiry";
@@ -43,11 +42,13 @@ export function InventoryPage({
   householdId,
   items,
   onUsed,
+  onShopping,
   onDelete,
 }: {
   householdId: string;
   items: InventoryItem[];
   onUsed: (item: InventoryItem) => void;
+  onShopping: (item: InventoryItem) => void;
   onDelete: (item: InventoryItem) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -147,15 +148,7 @@ export function InventoryPage({
                 onUsed={onUsed}
                 onEdit={setEditing}
                 onDelete={onDelete}
-                onShopping={(stock) =>
-                  void addShoppingItem(householdId, {
-                    name: stock.name,
-                    productId: stock.productId,
-                    publicProductId: stock.publicProductId,
-                    unit: stock.unit,
-                    source: "inventory_action",
-                  })
-                }
+                onShopping={onShopping}
                 onAdjust={(stock, delta) =>
                   void mergeInventoryQuantity(
                     householdId,

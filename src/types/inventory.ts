@@ -16,6 +16,7 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   location: ProductLocation;
+  remainingPercent?: number | null;
   expiryDate: string | null;
   hasNoExpiry: boolean;
   addedAt: Timestamp;
@@ -35,6 +36,7 @@ export interface InventoryInput {
   quantity: number;
   unit: string;
   location: ProductLocation;
+  remainingPercent?: number | null;
   expiryDate: string | null;
   hasNoExpiry: boolean;
   notes: string | null;
