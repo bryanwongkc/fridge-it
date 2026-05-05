@@ -6,23 +6,134 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Development MVP rules.
-    // TODO production: replace localStorage household IDs with membership documents
-    // and use custom claims or role documents for admin-only review/public writes.
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
 
-    match /publicProducts/{productId} {
+    function isMember(householdId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid));
+    }
+
+    function isOwner(householdId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid)).data.role == "owner";
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /households/{householdId} {
+      // Invite lookup allows signed-in users to read invite-enabled household docs.
+      // MVP assumption: invite codes are high entropy and the client only queries by exact code.
+      allow get, list: if isMember(householdId)
+        || (signedIn() && resource.data.inviteEnabled == true);
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update: if (
+          isOwner(householdId)
+          && request.resource.data.ownerId == resource.data.ownerId
+        )
+        || (
+          // Invite joins and voluntary leaves adjust memberCount from the client.
+          // MVP assumption: membership writes below are the source of truth.
+          signedIn()
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(["memberCount", "updatedAt"])
+          && (
+            (
+              resource.data.inviteEnabled == true
+              && request.resource.data.memberCount == resource.data.memberCount + 1
+            )
+            || (
+              isMember(householdId)
+              && request.resource.data.memberCount == resource.data.memberCount - 1
+            )
+          )
+        );
+
+      allow delete: if false;
+
+      match /members/{memberUserId} {
+        allow read: if isMember(householdId);
+
+        // Invite join: a signed-in user may add themselves to an invite-enabled household.
+        // Owner-managed member removal can be tightened before public beta if needed.
+        allow create: if signedIn()
+          && request.auth.uid == memberUserId
+          && (
+            (
+              request.resource.data.role == "owner"
+              && getAfter(/databases/$(database)/documents/households/$(householdId)).data.ownerId == request.auth.uid
+            )
+            || (
+              request.resource.data.role == "member"
+              && get(/databases/$(database)/documents/households/$(householdId)).data.inviteEnabled == true
+            )
+          );
+
+        allow update: if isOwner(householdId);
+
+        allow delete: if isOwner(householdId)
+          || (signedIn()
+            && request.auth.uid == memberUserId
+            && resource.data.role != "owner");
+      }
+
+      match /inventoryItems/{itemId} {
+        allow read, write: if isMember(householdId);
+      }
+
+      match /householdItemLibrary/{templateId} {
+        allow read, write: if isMember(householdId);
+      }
+
+      match /groceryListItems/{groceryItemId} {
+        allow read, write: if isMember(householdId);
+      }
+
+      match /barcodeProductIndex/{barcode} {
+        // Household barcode memory is private to members of that household.
+        allow read, write: if isMember(householdId);
+      }
+    }
+
+    match /barcodeCache/{barcode} {
       allow read: if signedIn();
-      allow write: if signedIn(); // TODO admin-only.
+      // MVP client writes support optional Open Food Facts caching.
+      // Long-term public write paths should move behind Cloud Functions.
+      allow write: if signedIn();
     }
 
-    match /households/{householdId}/{document=**} {
-      allow read, write: if signedIn(); // TODO household membership check.
+    match /rawOpenFoodFactsResponses/{responseId} {
+      // MVP diagnostic cache for external barcode lookup responses.
+      // Long-term writes should move behind Cloud Functions.
+      allow read, write: if signedIn();
     }
 
-    match /productSubmissions/{submissionId} {
-      allow read: if signedIn(); // TODO admin-only for full queue.
-      allow create: if signedIn();
-      allow update, delete: if signedIn(); // TODO admin-only for review updates.
+    match /normalizedProducts/{normalizedProductId} {
+      allow read: if signedIn();
+      // MVP client writes allow normalized Open Food Facts helpers.
+      // This is not the app source of truth.
+      allow write: if signedIn();
+    }
+
+    // Future-only collections. No MVP UI uses these.
+    match /publicItemLibrary/{publicItemId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /pendingPublicSubmissions/{submissionId} {
+      allow read, write: if false;
+    }
+
+    match /adminUsers/{userId} {
+      allow read: if isSelf(userId);
+      allow write: if false;
     }
   }
 }

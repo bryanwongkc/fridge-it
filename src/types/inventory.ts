@@ -1,43 +1,117 @@
 import type { Timestamp } from "firebase/firestore";
-import type { ProductLocation } from "./product";
+import type { HouseholdLocation } from "./household";
 
-export type InventoryStatus = "active" | "used" | "expired" | "discarded";
+export type QuantityMode = "percentage" | "count";
+
+export type InventoryStatus =
+  | "available"
+  | "consumed"
+  | "discarded"
+  | "expired"
+  | "kept"
+  | "deleted";
+
+export type ExpiryPreset =
+  | "today"
+  | "tomorrow"
+  | "3_days"
+  | "1_week"
+  | "2_weeks"
+  | "1_month"
+  | "3_months"
+  | "unknown"
+  | "custom";
+
+export type Category =
+  | "Dairy"
+  | "Meat"
+  | "Seafood"
+  | "Vegetables"
+  | "Fruit"
+  | "Drinks"
+  | "Eggs"
+  | "Leftovers"
+  | "Frozen"
+  | "Condiments"
+  | "Snacks"
+  | "Pantry"
+  | "Other";
+
+export type Unit =
+  | "pcs"
+  | "pack"
+  | "bottle"
+  | "carton"
+  | "box"
+  | "bag"
+  | "tray"
+  | "can"
+  | "g"
+  | "kg"
+  | "ml"
+  | "L"
+  | "item";
 
 export interface InventoryItem {
   id: string;
-  productId: string | null;
-  publicProductId: string | null;
+  householdId: string;
+  templateId?: string | null;
+  barcode?: string | null;
   name: string;
   normalizedName: string;
-  barcode: string | null;
-  brand: string | null;
-  category: string | null;
-  imageUrl: string | null;
-  quantity: number;
-  unit: string;
-  location: ProductLocation;
-  remainingPercent?: number | null;
-  expiryDate: string | null;
-  hasNoExpiry: boolean;
-  addedAt: Timestamp;
-  updatedAt: Timestamp;
+  category: Category;
+  location: HouseholdLocation;
+  quantityMode?: QuantityMode;
+  percentage?: 100 | 75 | 50 | 25 | 10 | 0;
+  quantity?: number;
+  unit?: Unit;
+  expiryKnown: boolean;
+  expiryDate?: string | null;
+  expiryPreset?: ExpiryPreset;
   status: InventoryStatus;
-  notes: string | null;
+  addedBy: string;
+  updatedBy: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  consumedAt?: Timestamp | null;
+  discardedAt?: Timestamp | null;
+  keptAt?: Timestamp | null;
+  deletedAt?: Timestamp | null;
 }
 
-export interface InventoryInput {
-  productId: string | null;
-  publicProductId: string | null;
+export type ExpiryStatus = "unknown" | "fresh" | "expiringSoon" | "expired";
+
+export type PercentageValue = 100 | 75 | 50 | 25 | 10 | 0;
+
+export interface CreateInventoryItemInput {
+  householdId: string;
+  userId: string;
   name: string;
-  barcode: string | null;
-  brand: string | null;
-  category: string | null;
-  imageUrl: string | null;
-  quantity: number;
-  unit: string;
-  location: ProductLocation;
-  remainingPercent?: number | null;
-  expiryDate: string | null;
-  hasNoExpiry: boolean;
-  notes: string | null;
+  location: HouseholdLocation;
+  category?: Category;
+  barcode?: string | null;
+  templateId?: string | null;
+  quantityMode?: QuantityMode;
+  percentage?: PercentageValue;
+  quantity?: number;
+  unit?: Unit;
+  expiryKnown?: boolean;
+  expiryDate?: string | null;
+  expiryPreset?: ExpiryPreset;
+}
+
+export interface UpdateInventoryItemInput {
+  name?: string;
+  location?: HouseholdLocation;
+  category?: Category;
+  barcode?: string | null;
+  quantityMode?: QuantityMode;
+  percentage?: PercentageValue | null;
+  quantity?: number | null;
+  unit?: Unit | null;
+  expiryKnown?: boolean;
+  expiryDate?: string | null;
+  expiryPreset?: ExpiryPreset;
+  status?: InventoryStatus;
+  updatedBy: string;
 }

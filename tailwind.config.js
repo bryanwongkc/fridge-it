@@ -4,21 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        kitchen: {
-          bg: "#F7F8F5",
-          paper: "#FFFFFF",
-          ink: "#111827",
-          muted: "#6B7280",
-          line: "#E5E7EB",
-          green: "#2F8F6B",
-          blue: "#2F6BFF",
-          cream: "#F8F7F2"
-        }
+        cream: "#f8f5ef",
+        ink: "#171916",
+        moss: "#2f6f4e",
+        sage: "#dfe8dc",
+        oat: "#ede5d8",
       },
       boxShadow: {
-        soft: "0 18px 45px rgba(17, 24, 39, 0.08)"
-      }
-    }
+        soft: "0 18px 50px rgba(23, 25, 22, 0.08)",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };

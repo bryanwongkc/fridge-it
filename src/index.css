@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  color: #111827;
-  background: #f7f8f5;
+  color: #171916;
+  background: #f8f5ef;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -18,28 +18,51 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+  overflow-x: hidden;
+  background: #f8f5ef;
+}
+
 body {
-  margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background: #f8f5ef;
 }
 
 button,
 input,
-select,
-textarea {
+select {
   font: inherit;
 }
 
-.safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 76px);
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(47, 111, 78, 0.35);
+  outline-offset: 2px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.tap-target {
+  min-height: 44px;
 }
 
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -1,93 +1,170 @@
-import { Html5Qrcode } from "html5-qrcode";
-import { Camera, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "../common/Button";
-import { Card } from "../common/Card";
+import { Barcode, Camera, Keyboard, X } from "lucide-react";
+import type { BarcodeLookupResult } from "../../types/barcode";
 
-const scannerId = "fridge-control-barcode-scanner";
+interface BarcodeScannerProps {
+  loading: boolean;
+  onLookup: (barcode: string) => Promise<BarcodeLookupResult>;
+}
 
-export function BarcodeScanner({
-  onDetected,
-  onCancel,
-}: {
-  onDetected: (barcode: string) => void;
-  onCancel: () => void;
-}) {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const [error, setError] = useState<string | null>(null);
+interface BarcodeDetectorLike {
+  detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>;
+}
+
+interface BarcodeDetectorConstructor {
+  new (options?: { formats?: string[] }): BarcodeDetectorLike;
+}
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  }
+}
+
+export function BarcodeScanner({ loading, onLookup }: BarcodeScannerProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [manualBarcode, setManualBarcode] = useState("");
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const detectorAvailable = typeof window !== "undefined" && Boolean(window.BarcodeDetector);
 
   useEffect(() => {
-    let active = true;
-    const scanner = new Html5Qrcode(scannerId);
-    scannerRef.current = scanner;
+    if (!cameraOpen || !detectorAvailable) {
+      return () => undefined;
+    }
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 160 } },
-        async (decodedText) => {
-          if (!active) return;
-          active = false;
-          try {
-            await scanner.stop();
-            await scanner.clear();
-          } catch {
-            // Scanner can already be stopped by browser lifecycle.
+    let cancelled = false;
+    let animationFrame = 0;
+    const Detector = window.BarcodeDetector;
+    if (!Detector) {
+      return () => undefined;
+    }
+    const detector = new Detector({
+      formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
+    });
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        async function scanLoop() {
+          if (cancelled || !videoRef.current || !detector) {
+            return;
           }
-          onDetected(decodedText);
-        },
-        undefined,
-      )
-      .catch(() => {
-        setError("Camera permission is blocked. Enter the barcode instead.");
-      });
+          try {
+            const results = await detector.detect(videoRef.current);
+            const rawValue = results[0]?.rawValue;
+            if (rawValue) {
+              await onLookup(rawValue);
+              setCameraOpen(false);
+              return;
+            }
+          } catch {
+            // Keep camera open; manual entry remains available below.
+          }
+          animationFrame = window.requestAnimationFrame(() => void scanLoop());
+        }
+
+        void scanLoop();
+      } catch {
+        setCameraError("Camera unavailable. Enter the barcode manually.");
+        setCameraOpen(false);
+      }
+    }
+
+    void startCamera();
 
     return () => {
-      active = false;
-      if (scannerRef.current?.isScanning) {
-        void scannerRef.current.stop().then(() => scannerRef.current?.clear());
-      } else {
-        void scannerRef.current?.clear();
+      cancelled = true;
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
       }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     };
-  }, [onDetected]);
+  }, [cameraOpen, detectorAvailable, onLookup]);
+
+  async function handleManualLookup() {
+    if (!manualBarcode.trim()) {
+      return;
+    }
+    try {
+      await onLookup(manualBarcode);
+      setManualBarcode("");
+    } catch {
+      setCameraError("Barcode lookup failed. You can still type the item manually.");
+    }
+  }
 
   return (
-    <Card className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-black text-kitchen-ink">Scan barcode</h1>
-          <p className="text-sm text-kitchen-muted">Point at the package barcode.</p>
+    <section className="rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-soft">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-moss">
+          <Barcode className="h-5 w-5" aria-hidden="true" />
         </div>
+        <div>
+          <h2 className="text-lg font-bold text-ink">Barcode is optional</h2>
+          <p className="mt-1 text-sm leading-6 text-stone-600">
+            Scan barcode to make this faster next time. If nothing is found, add it once and this household will remember it.
+          </p>
+        </div>
+      </div>
+
+      {cameraOpen ? (
+        <div className="mt-4 overflow-hidden rounded-2xl bg-ink">
+          <video ref={videoRef} className="aspect-video w-full object-cover" muted playsInline />
+        </div>
+      ) : null}
+
+      {cameraError ? (
+        <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {cameraError}
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          onClick={onCancel}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100"
-          aria-label="Close scanner"
+          onClick={() => setCameraOpen((value) => !value)}
+          disabled={!detectorAvailable || loading}
+          className="tap-target inline-flex items-center justify-center gap-2 rounded-2xl bg-moss px-4 text-sm font-semibold text-white disabled:bg-stone-200 disabled:text-stone-500"
         >
-          <X size={20} />
+          {cameraOpen ? <X className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+          {detectorAvailable ? (cameraOpen ? "Stop camera" : "Scan") : "Camera scan unavailable"}
         </button>
+        <div className="flex gap-2">
+          <input
+            value={manualBarcode}
+            onChange={(event) => setManualBarcode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                void handleManualLookup();
+              }
+            }}
+            placeholder="Enter barcode"
+            aria-label="Enter barcode manually"
+            className="h-12 min-w-0 flex-1 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-base outline-none focus:border-moss focus:bg-white"
+          />
+          <button
+            type="button"
+            onClick={() => void handleManualLookup()}
+            disabled={loading || !manualBarcode.trim()}
+            className="tap-target inline-flex items-center justify-center rounded-2xl bg-ink px-4 text-white disabled:opacity-60"
+            aria-label="Look up barcode"
+          >
+            <Keyboard className="h-5 w-5" />
+          </button>
+        </div>
       </div>
-      <div id={scannerId} className="overflow-hidden rounded-2xl bg-slate-900" />
-      {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
-      <div className="flex gap-2">
-        <input
-          value={manualBarcode}
-          onChange={(event) => setManualBarcode(event.target.value)}
-          placeholder="Enter barcode"
-          inputMode="numeric"
-          className="min-h-12 flex-1 rounded-2xl border border-kitchen-line bg-white px-4 outline-none focus:border-kitchen-green"
-        />
-        <Button
-          type="button"
-          icon={<Camera size={18} />}
-          disabled={!manualBarcode.trim()}
-          onClick={() => onDetected(manualBarcode.trim())}
-        >
-          Use
-        </Button>
-      </div>
-    </Card>
+    </section>
   );
 }
